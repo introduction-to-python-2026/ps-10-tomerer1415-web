@@ -1,27 +1,17 @@
 import numpy as np
-from imageio.v2 import imread
-from scipy.signal import convolve2d
+from PIL import Image
+from scipy.ndimage import convolve
 
 def image_load(path: str) -> np.ndarray:
-    """
-    Loads a color image and returns it as a numpy array.
-    """
-    img = imread(path)
+    # טוען תמונה ומחזיר numpy array
+    img = np.array(Image.open(path))
     return img
 
 def detection_edge(image: np.ndarray) -> np.ndarray:
-    """
-    Receives a color image array (H,W,3) and returns edge magnitude map (H,W).
-    """
-    # Convert to grayscale by averaging channels
-    if image.ndim == 3:
-        gray = image.mean(axis=2)
-    else:
-        gray = image
+    # 1) המרה לאפור: ממוצע 3 ערוצים
+    gray = image.mean(axis=2).astype(np.float64)
 
-    gray = gray.astype(np.float64)
-
-    # Derivative filters
+    # 2) פילטרים (Prewitt)
     fy = np.array([[-1, -1, -1],
                    [ 0,  0,  0],
                    [ 1,  1,  1]], dtype=np.float64)
@@ -30,10 +20,10 @@ def detection_edge(image: np.ndarray) -> np.ndarray:
                    [-1,  0,  1],
                    [-1,  0,  1]], dtype=np.float64)
 
-    # Convolution with zero-padding and same output size
-    edgeY = convolve2d(gray, fy, mode="same", boundary="fill", fillvalue=0)
-    edgeX = convolve2d(gray, fx, mode="same", boundary="fill", fillvalue=0)
+    # 3) קונבולוציה עם padding=0 (constant עם cval=0) וגודל פלט זהה לקלט
+    edgeY = convolve(gray, fy, mode="constant", cval=0.0)
+    edgeX = convolve(gray, fx, mode="constant", cval=0.0)
 
-    # Edge magnitude (as defined in the instructions)
+    # 4) edgeMAG = edgeX^2 + edgeY^2
     edgeMAG = edgeX**2 + edgeY**2
     return edgeMAG
