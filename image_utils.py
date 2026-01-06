@@ -1,43 +1,31 @@
+from PIL import Image
 import numpy as np
-from imageio.v2 import imread
-from scipy.ndimage import convolve
+from scipy.signal import convolve2d
 
+def load_image(file_path):
+    image = Image.open(file_path)
+    return np.array(image)
 
-def image_load(path: str) -> np.ndarray:
-    """
-    Load image from disk and return as numpy array.
-    """
-    return imread(path)
-
-
-def detection_edge(image: np.ndarray) -> np.ndarray:
-    """
-    Edge detection according to the instructions.
-    Works for both RGB (H,W,3) and grayscale (H,W).
-    Returns edge magnitude map (H,W).
-    """
-
-    # grayscale: mean over channels if RGB
+def edge_detection(image):
     if image.ndim == 3:
-        gray = image.mean(axis=2)
+        # חישוב ממוצע הערוצים להפיכה לאפור
+        gray_image = np.mean(image, axis=2)
     else:
-        gray = image
+        gray_image = image
 
-    gray = gray.astype(np.float64)
-
-    # filters (Prewitt)
-    fy = np.array([[-1, -1, -1],
-                   [ 0,  0,  0],
-                   [ 1,  1,  1]], dtype=np.float64)
-
-    fx = np.array([[-1,  0,  1],
-                   [-1,  0,  1],
-                   [-1,  0,  1]], dtype=np.float64)
-
-    # convolution with padding=0 (constant 0)
-    edgeY = convolve(gray, fy, mode="constant", cval=0.0)
-    edgeX = convolve(gray, fx, mode="constant", cval=0.0)
-
-    # magnitude (no sqrt, as in instructions)
-    edgeMAG = edgeX**2 + edgeY**2
+    # הגדרת קרנלים של Sobel
+    kernelX = np.array([[-1, 0, 1],
+                        [-2, 0, 2],
+                        [-1, 0, 1]])
+    
+    kernelY = np.array([[1, 2, 1],
+                        [0, 0, 0],
+                        [-1, -2, -1]])
+    
+    # ביצוע קונבולוציה (שימוש בייבוא ישיר מ-scipy)
+    edgeX = convolve2d(gray_image, kernelX, mode='same', boundary='fill')
+    edgeY = convolve2d(gray_image, kernelY, mode='same', boundary='fill')
+    
+    # חישוב עוצמת הקצוות
+    edgeMAG = np.sqrt(edgeX*2 + edgeY*2)
     return edgeMAG
